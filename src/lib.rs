@@ -573,7 +573,7 @@ where
     T: Hash + Eq + Clone,
     N: Clone + Zero + AddAssign
 {
-    /// Convert a Vector of (T, N) into a Counter<T,N>
+    /// Converts a Vector of (T, N) into a Counter<T,N>
     /// 
     /// ```rust
     /// # use counter::Counter;
