@@ -566,6 +566,53 @@ where
     }
 }
 
+
+
+impl<T, N> Into<Counter<T, N>> for Vec<(T, N)>
+where
+    T: Hash + Eq + Clone,
+    N: Clone + Zero + AddAssign
+{
+    /// Convert a Vector of (T, N) into a Counter<T,N>
+    /// 
+    /// ```rust
+    /// # use counter::Counter;
+    /// let counter = Counter::init("abb".chars());
+    /// let expected = vec![('a', 1), ('b', 2)].into();
+    /// assert_eq!(counter, expected);
+    /// ```
+    fn into(self) -> Counter<T, N> {
+        self.iter().cloned().collect::<Counter<T, N>>()
+    }
+}
+
+
+impl<T, N> Counter<T, N>
+where
+T: Hash + Eq + Clone,
+N: Clone + Eq + PartialOrd<usize>
+{
+    /// Creates a vector of `(elem, frequency)` pairs, for all pairs where frequency is at least k.
+    /// 
+    /// ```rust
+    /// # use counter::Counter;
+    /// let counter: Counter<_> = "abababa".chars().collect();
+    /// let by_min = counter.min_count(4);
+    /// let expected = vec![('a', 4)];
+    /// assert_eq!(by_min, expected);
+    /// ```
+    /// 
+    pub fn min_count(&self, k: usize) -> Vec<(T, N)> {
+        let items = self
+        .map
+        .iter()
+        .filter(|(_, count)| **count >= k)
+        .map(|(key, count)| (key.clone(), count.clone()))
+        .collect::<Vec<_>>();
+        items
+    }
+}
+
 impl<T, N> Default for Counter<T, N>
 where
     T: Hash + Eq,
@@ -1729,5 +1776,46 @@ mod tests {
         // Adjust a to make it a subset again
         a[&'e'] = -2;
         assert!(a.is_subset(&b));
+    }
+
+    #[test]
+    fn test_min_count() {
+        let counter: Counter<char, usize> = Counter::init("cbcabcdddd".chars());
+        let mut by_min = counter.min_count(2);
+        by_min.sort_by(|(_, v1), (_, v2)| v2.cmp(v1));
+        let expected = vec![('d', 4), ('c', 3), ('b', 2)];
+        assert!(by_min == expected);
+    }
+
+    #[test]
+    fn test_min_count_identity() {
+        let counter: Counter<char, usize> = Counter::init("cbcabcdddd".chars());
+        let mut by_min = counter.min_count(0);
+        by_min.sort_by(|(_, v1), (_, v2)| v2.cmp(v1));
+        let expected = vec![('d', 4), ('c', 3), ('b', 2), ('a', 1)];
+        assert!(by_min == expected);
+    }
+
+    #[test]
+    fn test_into_counter() {
+        let counter: Counter<&str, u32> = Counter::init("ab cd ab".split_whitespace());
+        let expected: Counter<&str, u32> = vec![("ab", 2), ("cd", 1)].into();
+        assert!(counter == expected)
+    }
+
+    #[test]
+    fn test_into_counter_empty() {
+        let counter: Counter<&str, u32> = Counter::new();
+        let expected: Counter<&str, u32> = vec![].into();
+        assert!(counter == expected)
+    }
+
+    #[test]
+    fn test_min_count_most_common_composition() {
+        let counter: Counter<char, usize> = Counter::init("abcdefgggg".chars());
+        let by_common: Counter<char, usize> = counter.k_most_common_ordered(3).into();
+        let by_min_and_common = by_common.min_count(2);
+        let expected = vec![('g', 4)];
+        assert!(by_min_and_common == expected);
     }
 }
